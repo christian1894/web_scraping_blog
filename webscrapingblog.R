@@ -24,14 +24,14 @@ all_pages
 #URL LIST AFTER PAGINATION
 linksGetter<-function(url){
   selector = "article > h3 > a"
-  pagina<-read_html(url)
-  nodo<-html_nodes(pagina, selector)
+  page<-read_html(url)
+  nodo<-html_nodes(page, selector)
   nodo_text<-html_text(nodo)
   nodo_links<-html_attr(nodo, "href")
   nodo_links
 }
 #Function test
-first_page_books = linksGetter(pag[1])
+first_page_books = linksGetter(all_pages[1])
 first_page_books
 #All books URls
 books_urls<-sapply(all_pages, linksGetter)
@@ -66,7 +66,7 @@ reviews_number
 details_selector = ".table"
 details_node<-html_node(web_page, details_selector)
 table_node_table<-html_table(details_node)
-table_values<-table_tab$X2
+table_values<-table_node_table$X2
 table_dataframe = data.frame(t(table_values))
 table_names = table_node_table$X1
 colnames(table_dataframe) = table_names
@@ -80,34 +80,37 @@ single_book_results
 
 # BOOK DETAILS FUNCTION
 getDetails = function(url){
-  web_page = read_html(url)
-  #BOOK NAME
+  web_page<-read_html(url)
+  #extracting book's name
   name_selector<-"h1"
   name_node<-html_node(web_page, name_selector)
   name_text<-html_text(name_node)
-  
-  #BOOK PRICE
+
+  #extracting book's price
   price_selector <-"p.price_color"
   price_node<-html_node(web_page, price_selector)
   price_text<-html_text(price_node)
-  
-  #BOOK REVIEWS
-  review<-"p.star-rating"
-  review_node<-html_node(web_page, review)
-  review_text<-html_attr(review_node, "class")
-  review_text = substr(review_text, 13, 17)
-  review_number = switch(review_text, "Zero" = 0,"One" = 1, "Two" = 2, "Three" = 3, "Four" = 4, "Five" = 5,)
-  
-  #PRODUCT DETAIL
+
+  #extracting review as number
+  reviews<-"p.star-rating"
+  reviews_node<-html_node(web_page, reviews)
+  reviews_text<-html_attr(reviews_node, "class")
+  reviews_text = substr(reviews_text, 13, 17)
+  reviews_number = switch(reviews_text, "Zero" = 0,"One" = 1, "Two" = 2, "Three" = 3, "Four" = 4, "Five" = 5,)
+
+  #extracting product details table
   details_selector = ".table"
   details_node<-html_node(web_page, details_selector)
   table_node_table<-html_table(details_node)
-  table_values<-table_tab$X2
+  table_values<-table_node_table$X2
   table_dataframe = data.frame(t(table_values))
   table_names = table_node_table$X1
   colnames(table_dataframe) = table_names
-  book = c(name_text, review_number, price_text, as.character(table$Availability))
-}
+  
+  #book details result
+  single_book_results = c(name_text, price_text, reviews_number, as.character(table_dataframe$Availability))
+  single_book_results
+  }
 
 single_book_test = getDetails(books_urls[1])
 single_book_test
@@ -116,10 +119,9 @@ single_book_test
 
 scraping_results = sapply(books_urls, getDetails)
 
-
 #CREATE DATAFRAME
 scraping_results = t(scraping_results)
-colnames(scraping_results) = c("Book Name", "Rating", "Price", "Availability")
+colnames(scraping_results) = c("Book Name", "Price",  "Rating", "Availability")
 rownames(scraping_results) = c(1:1000)
 write.csv(scraping_results, file="bookScrapingResults")
 
